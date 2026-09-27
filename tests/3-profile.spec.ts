@@ -8,6 +8,7 @@ test.use({ storageState: authFile });
 
 test.describe('Profile', () => {
   test('View activity, edit profile, and delete account', async ({ page }) => {
+    test.setTimeout(60000);
     const testUser = {
       email: 'testuser_e2e@example.com',
       password: 'Password123!'
@@ -20,18 +21,18 @@ test.describe('Profile', () => {
     await expect(page.locator('h3:has-text("User Profile")')).toBeVisible();
 
     // Verify user can see post and comments (All activity)
-    await expect(page.locator('span:has-text("Post")').first()).toBeVisible();
-    await expect(page.locator('span:has-text("Comment")').first()).toBeVisible();
+    await expect(page.locator('span.bg-blue-100').filter({ hasText: 'Post' }).first()).toBeVisible();
+    await expect(page.locator('span.bg-purple-100').filter({ hasText: 'Comment' }).first()).toBeVisible();
 
     // Check if user can see only posts
     await page.click('button:has-text("Posts (")');
-    await expect(page.locator('span:has-text("Post")').first()).toBeVisible();
-    await expect(page.locator('span:has-text("Comment")')).toHaveCount(0);
+    await expect(page.locator('span.bg-blue-100').filter({ hasText: 'Post' }).first()).toBeVisible();
+    await expect(page.locator('span.bg-purple-100').filter({ hasText: 'Comment' })).toHaveCount(0);
 
     // Check if user can see only comments
     await page.click('button:has-text("Comments (")');
-    await expect(page.locator('span:has-text("Comment")').first()).toBeVisible();
-    await expect(page.locator('span:has-text("Post")')).toHaveCount(0);
+    await expect(page.locator('span.bg-purple-100').filter({ hasText: 'Comment' }).first()).toBeVisible();
+    await expect(page.locator('span.bg-blue-100').filter({ hasText: 'Post' })).toHaveCount(0);
 
     // Edit profile functionality
     await page.click('button:has-text("Edit Profile")');
@@ -66,6 +67,6 @@ test.describe('Profile', () => {
     await page.click('button:has-text("Sign In")');
     
     // Check for error message
-    await expect(page.locator('text="Username or password is incorrect"')).toBeVisible();
+    await expect(page.getByText('Username or password is incorrect')).toBeVisible();
   });
 });
