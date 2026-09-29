@@ -41,7 +41,7 @@ export default defineConfig({
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
     launchOptions: {
-      slowMo: 100,
+      slowMo: 10,
     },
   },
 
