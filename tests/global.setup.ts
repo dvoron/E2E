@@ -5,5 +5,4 @@ async function globalSetup(config: FullConfig) {
   // or setting up generic environment things before tests run.
   console.log(`Running tests against: ${process.env.BASE_URL}`);
 }
-
 export default globalSetup;
