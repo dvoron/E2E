@@ -5,6 +5,7 @@ import * as path from 'path';
 const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
 const authDir = path.dirname(authFile);
 
+
 test.describe('Authentication', () => {
     test('Register or Login', async ({ page }) => {
         if (!fs.existsSync(authDir)) {
