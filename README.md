@@ -47,7 +47,6 @@ npm -v
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/dvoron/E2E.git
-   cd E2E
    ```
 
 2. **Install Dependencies:**
