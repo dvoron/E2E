@@ -17,7 +17,7 @@ test.describe('Forum', () => {
         let cookieStr = '';
         if (fs.existsSync(authFile)) {
             const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-            const refreshTokenCookie = authData.cookies.find(c => c.name === 'refreshToken');
+            const refreshTokenCookie = authData.cookies.find((c: any) => c.name === 'refreshToken');
             if (refreshTokenCookie) {
                 cookieStr = `${refreshTokenCookie.name}=${refreshTokenCookie.value}`;
             }
