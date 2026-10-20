@@ -59,12 +59,22 @@ test.describe('Profile', () => {
         });
     });
 
-    test('View activity, edit profile, and delete account', async ({ page }) => {
+    test('View activity and edit profile', async ({ page }) => {
         test.setTimeout(60000);
-        const testUser = {
-            email: 'testuser_e2e@example.com',
-            password: 'Password123!'
-        };
+
+        // First, create a post and comment so they exist in the profile
+        await page.goto('/forum');
+        await page.getByRole('button', { name: 'Create Post' }).click();
+        const postTitle = `Profile Test Post ${Date.now()}`;
+        await page.getByPlaceholder('Title').fill(postTitle);
+        await page.getByPlaceholder('Text (optional)').fill('Profile test content');
+        await page.getByRole('button', { name: 'Post', exact: true }).click();
+        
+        const postLocator = page.locator('.post').filter({ hasText: postTitle }).first();
+        await expect(postLocator).toBeVisible();
+        await postLocator.getByRole('button', { name: /Comments/ }).click();
+        await postLocator.getByPlaceholder('What are your thoughts?').fill('Profile test comment');
+        await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
 
         // Navigate to profile page (user is already authenticated via storageState)
         await page.goto('/profile');
@@ -98,27 +108,5 @@ test.describe('Profile', () => {
 
         // Verify success message
         await expect(page.locator('text="Profile updated successfully!"')).toBeVisible();
-
-        // Delete the profile
-        await page.click('button:has-text("Edit Profile")');
-        await page.click('button:has-text("Delete Account")');
-
-        // Enter password to verify
-        await page.fill('input[id="deletePassword"]', testUser.password);
-        await page.click('button:has-text("Verify")');
-
-        // Confirm deletion
-        await page.click('button:has-text("Yes, Delete")');
-
-        // Verify redirect to login
-        await page.waitForURL('**/login', { timeout: 5000 });
-
-        // Verify by attempting to login that the user does not exist
-        await page.fill('input[placeholder="Enter username or email"]', testUser.email);
-        await page.fill('input[placeholder="Enter password"]', testUser.password);
-        await page.click('button:has-text("Sign In")');
-
-        // Check for error message
-        await expect(page.getByText('Username or password is incorrect')).toBeVisible();
     });
 });

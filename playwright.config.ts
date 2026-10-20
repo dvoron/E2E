@@ -28,7 +28,7 @@ export default defineConfig({
   reporter: 'html',
   
   /* Global Setup for things like auth state */
-  globalSetup: require.resolve('./tests/global.setup'),
+  // globalSetup: require.resolve('./tests/global.setup'),
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -51,10 +51,20 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      teardown: 'teardown',
+    },
+    {
+      name: 'teardown',
+      testMatch: /auth\.teardown\.ts/,
+    },
+    {
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
       },
+      dependencies: ['setup'],
     },
 
     {
@@ -62,6 +72,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
       },
+      dependencies: ['setup'],
     },
 
     {
@@ -69,6 +80,7 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Safari'],
       },
+      dependencies: ['setup'],
     },
   ],
 });
