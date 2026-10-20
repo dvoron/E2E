@@ -1,4 +1,4 @@
-name: Playwright E2E Tests Build
+name: Playwright E2E Typecheck
 
 on:
   push:
@@ -7,18 +7,10 @@ on:
     branches: [ main, master ]
   # Allow manual trigger
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to run tests against'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
 
 jobs:
-  test:
-    timeout-minutes: 60
+  typecheck:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     
     steps:
@@ -26,10 +18,10 @@ jobs:
     
     - uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+        node-version-file: '.nvmrc'
         
     - name: Install dependencies
       run: npm ci
       
     - name: Typecheck E2E tests
-      run: npx tsc --noEmit
+      run: npm run typecheck

@@ -2,8 +2,9 @@
   "name": "e2e",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dvoron/E2E.git"
@@ -23,10 +24,8 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.2",
+    "dotenv": "^18.0.3",
     "typescript": "^5.6.3"
   },
-  "dependencies": {
-    "cross-env": "^10.1.0",
-    "dotenv": "^18.0.3"
-  }
+  "dependencies": {}
 }

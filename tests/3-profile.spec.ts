@@ -30,18 +30,21 @@ test.describe('Profile', () => {
         // Wait for the profile page to load
         await expect(page.locator('h3:has-text("User Profile")')).toBeVisible();
 
-        // Verify user can see post and comments (All activity)
-        await expect(page.getByText('Post', { exact: true }).first()).toBeVisible();
-        await expect(page.getByText('Comment', { exact: true }).first()).toBeVisible();
+        // Wait for the activity list to finish loading (wait for the badges to appear)
+        const postBadge = page.getByText('Post', { exact: true }).first();
+        const commentBadge = page.getByText('Comment', { exact: true }).first();
+
+        await expect(postBadge).toBeVisible();
+        await expect(commentBadge).toBeVisible();
 
         // Check if user can see only posts
         await page.getByRole('button', { name: /Posts \(/ }).click();
-        await expect(page.getByText('Post', { exact: true }).first()).toBeVisible();
+        await expect(postBadge).toBeVisible();
         await expect(page.getByText('Comment', { exact: true })).toHaveCount(0);
 
         // Check if user can see only comments
         await page.getByRole('button', { name: /Comments \(/ }).click();
-        await expect(page.getByText('Comment', { exact: true }).first()).toBeVisible();
+        await expect(commentBadge).toBeVisible();
         await expect(page.getByText('Post', { exact: true })).toHaveCount(0);
 
         // Edit profile functionality

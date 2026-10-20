@@ -23,7 +23,7 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
-  workers: 1,
+  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   
@@ -35,7 +35,7 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.BASE_URL || 'http://localhost:5173', // Default Vue dev server port
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    /* Collect trace on failure. See https://playwright.dev/docs/trace-viewer */
     trace: 'retain-on-failure',
     
     /* Take screenshot on failure */
@@ -43,9 +43,6 @@ export default defineConfig({
     
     /* Record video on failure */
     video: 'retain-on-failure',
-    launchOptions: {
-      slowMo: 10,
-    },
   },
 
   /* Configure projects for major browsers */
