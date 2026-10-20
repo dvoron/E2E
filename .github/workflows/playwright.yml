@@ -15,7 +15,6 @@ on:
         type: choice
         options:
           - staging
-          - production
 
 jobs:
   test:

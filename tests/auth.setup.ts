@@ -38,11 +38,11 @@ setup('authenticate', async ({ page }) => {
         await page.click('button:has-text("Create Account")');
 
         // Wait for either success (redirect to home) or error message
+        const errorLocator = page.locator('.text-red-600');
+        
         await Promise.race([
             page.waitForURL('**/home', { timeout: 5000 }),
-            page.waitForSelector('text="Email is already taken"', { timeout: 5000 }).catch(() => null),
-            page.waitForSelector('text="Username is already taken"', { timeout: 5000 }).catch(() => null),
-            page.waitForSelector('.text-red-600', { timeout: 5000 }).catch(() => null)
+            errorLocator.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null)
         ]).catch(() => null);
     });
 
@@ -50,6 +50,9 @@ setup('authenticate', async ({ page }) => {
 
     if (currentUrl.endsWith('/home')) {
         await setup.step('Handle successful registration', async () => {
+            // Verify we actually landed on home and a logged-in element is visible
+            await expect(page.getByText('Welcome back!')).toBeVisible();
+            await expect(page.getByText('You are logged in.')).toBeVisible();
             await page.context().storageState({ path: authFile });
         });
     } else {
@@ -63,6 +66,8 @@ setup('authenticate', async ({ page }) => {
                 await page.click('button:has-text("Sign In")');
 
                 await page.waitForURL('**/home', { timeout: 5000 });
+                await expect(page.getByText('Welcome back!')).toBeVisible();
+                await expect(page.getByText('You are logged in.')).toBeVisible();
                 await page.context().storageState({ path: authFile });
             } else {
                 throw new Error('Registration failed for unknown reason: ' + errorText);
