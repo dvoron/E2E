@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/auth.fixture';
 import * as path from 'path';
 
 const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
@@ -7,63 +7,6 @@ const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
 test.use({ storageState: authFile });
 
 test.describe('Forum', () => {
-    test.beforeEach(async ({ page, request }) => {
-        // Since Playwright's `request` object doesn't automatically send cookies from the `storageState`,
-        // we need to manually read the cookie from the saved state and pass it to the backend.
-        const fs = require('fs');
-        const path = require('path');
-        const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
-
-        let cookieStr = '';
-        if (fs.existsSync(authFile)) {
-            const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-            const refreshTokenCookie = authData.cookies.find((c: any) => c.name === 'refreshToken');
-            if (refreshTokenCookie) {
-                cookieStr = `${refreshTokenCookie.name}=${refreshTokenCookie.value}`;
-            }
-        }
-
-        // Obtain an access token for the E2E tests using the backend refresh method
-        // Note: Using the API URL directly to bypass Vite's proxy which might drop cookies
-        const apiUrl = process.env.API_URL || 'http://localhost:8080';
-        const response = await request.post(`${apiUrl}/api/auth/refresh`, {
-            headers: {
-                'Cookie': cookieStr
-            }
-        });
-
-        let data: any = {};
-        if (response.ok()) {
-            data = await response.json();
-
-            if (data.refreshToken && fs.existsSync(authFile)) {
-                const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-                const cookieIndex = authData.cookies.findIndex((c: any) => c.name === 'refreshToken');
-                if (cookieIndex !== -1) {
-                    authData.cookies[cookieIndex].value = data.refreshToken;
-                    fs.writeFileSync(authFile, JSON.stringify(authData, null, 2));
-                }
-            }
-        } else {
-            const errorText = await response.text();
-            console.log('Failed to refresh token:', errorText);
-            // Fail straight away if the token refresh fails
-            expect(response.ok(), `Token refresh failed: ${errorText}`).toBeTruthy();
-        }
-
-        // Intercept the frontend's refresh request to provide the obtained token
-        // Note: Mocking /api/auth/refresh bypasses the app's real refresh flow.
-        // Every later refresh returns this same cached token, so a long test could 
-        // theoretically run past the access token's expiry.
-        await page.route('**/api/auth/refresh', async route => {
-            await route.fulfill({
-                status: response.ok() ? 200 : 401,
-                contentType: 'application/json',
-                body: JSON.stringify(data)
-            });
-        });
-    });
-
     test('Create post, comment, and reply', async ({ page }) => {
         // Navigate to forums page (user is already authenticated via storageState)
         await page.goto('/forum');
