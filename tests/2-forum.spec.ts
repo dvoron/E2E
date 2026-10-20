@@ -45,12 +45,16 @@ test.describe('Forum', () => {
                 }
             }
         } else {
-            console.log('Failed to refresh token:', await response.text());
-            // If refresh fails, we might need to re-authenticate. For now, we'll let the test proceed
-            // and fail naturally if it requires authentication.
+            const errorText = await response.text();
+            console.log('Failed to refresh token:', errorText);
+            // Fail straight away if the token refresh fails
+            expect(response.ok(), `Token refresh failed: ${errorText}`).toBeTruthy();
         }
 
         // Intercept the frontend's refresh request to provide the obtained token
+        // Note: Mocking /api/auth/refresh bypasses the app's real refresh flow.
+        // Every later refresh returns this same cached token, so a long test could 
+        // theoretically run past the access token's expiry.
         await page.route('**/api/auth/refresh', async route => {
             await route.fulfill({
                 status: response.ok() ? 200 : 401,
