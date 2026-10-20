@@ -32,10 +32,10 @@ setup('authenticate', async ({ page }) => {
     });
 
     await setup.step('Attempt registration', async () => {
-        await page.fill('input[placeholder="Username"]', testUser.username);
-        await page.fill('input[placeholder="Email"]', testUser.email);
-        await page.fill('input[placeholder="Password"]', testUser.password);
-        await page.click('button:has-text("Create Account")');
+        await page.getByPlaceholder('Username').fill(testUser.username);
+        await page.getByPlaceholder('Email').fill(testUser.email);
+        await page.getByPlaceholder('Password').fill(testUser.password);
+        await page.getByRole('button', { name: 'Create Account' }).click();
 
         // Wait for either success (redirect to home) or error message
         const errorLocator = page.locator('.text-red-600');
@@ -61,9 +61,9 @@ setup('authenticate', async ({ page }) => {
             if (errorText?.includes('taken') || errorText?.includes('already')) {
                 await page.goto('/home/login');
 
-                await page.fill('input[placeholder="Enter username or email"]', testUser.email);
-                await page.fill('input[placeholder="Enter password"]', testUser.password);
-                await page.click('button:has-text("Sign In")');
+                await page.getByPlaceholder('Enter username or email').fill(testUser.email);
+                await page.getByPlaceholder('Enter password').fill(testUser.password);
+                await page.getByRole('button', { name: 'Sign In' }).click();
 
                 await page.waitForURL('**/home', { timeout: 5000 });
                 await expect(page.getByText('Welcome back!')).toBeVisible();

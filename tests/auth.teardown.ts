@@ -20,23 +20,23 @@ teardown('delete account', async ({ page }) => {
     await expect(page.locator('h3:has-text("User Profile")')).toBeVisible();
 
     // Delete the profile
-    await page.click('button:has-text("Edit Profile")');
-    await page.click('button:has-text("Delete Account")');
+    await page.getByRole('button', { name: 'Edit Profile' }).click();
+    await page.getByRole('button', { name: 'Delete Account' }).click();
 
     // Enter password to verify
-    await page.fill('input[id="deletePassword"]', testUser.password);
-    await page.click('button:has-text("Continue")');
+    await page.locator('input[id="deletePassword"]').fill(testUser.password);
+    await page.getByRole('button', { name: 'Continue' }).click();
 
     // Confirm deletion
-    await page.click('button:has-text("Yes, Delete")');
+    await page.getByRole('button', { name: 'Yes, Delete' }).click();
 
     // Verify redirect to login
     await page.waitForURL('**/login', { timeout: 5000 });
 
     // Verify by attempting to login that the user does not exist
-    await page.fill('input[placeholder="Enter username or email"]', testUser.email);
-    await page.fill('input[placeholder="Enter password"]', testUser.password);
-    await page.click('button:has-text("Sign In")');
+    await page.getByPlaceholder('Enter username or email').fill(testUser.email);
+    await page.getByPlaceholder('Enter password').fill(testUser.password);
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
     // Check for error message
     await expect(page.getByText('Username or password is incorrect')).toBeVisible();
