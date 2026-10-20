@@ -24,8 +24,9 @@ test.describe('Profile', () => {
         }
 
         // Obtain an access token for the E2E tests using the backend refresh method
-        // Note: Using http://localhost:8080 directly to bypass Vite's proxy which might drop cookies
-        const response = await request.post('http://localhost:8080/api/auth/refresh', {
+        // Note: Using the API URL directly to bypass Vite's proxy which might drop cookies
+        const apiUrl = process.env.API_URL || 'http://localhost:8080';
+        const response = await request.post(`${apiUrl}/api/auth/refresh`, {
             headers: {
                 'Cookie': cookieStr
             }
