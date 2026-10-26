@@ -27,11 +27,20 @@ export const test = base.extend({
         if (response.ok()) {
             data = await response.json();
 
-            if (data.refreshToken && fs.existsSync(authFile)) {
+            let newRefreshToken = data.refreshToken;
+            const setCookieHeaders = response.headersArray().filter(h => h.name.toLowerCase() === 'set-cookie');
+            for (const header of setCookieHeaders) {
+                const match = header.value.match(/refreshToken=([^;]+)/);
+                if (match) {
+                    newRefreshToken = match[1];
+                }
+            }
+
+            if (newRefreshToken && fs.existsSync(authFile)) {
                 const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
                 const cookieIndex = authData.cookies.findIndex((c: any) => c.name === 'refreshToken');
                 if (cookieIndex !== -1) {
-                    authData.cookies[cookieIndex].value = data.refreshToken;
+                    authData.cookies[cookieIndex].value = newRefreshToken;
                     fs.writeFileSync(authFile, JSON.stringify(authData, null, 2));
                 }
             }
