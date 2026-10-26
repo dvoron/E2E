@@ -9,12 +9,12 @@ This project contains the End-to-End (E2E) automated test suite built with [Play
 
 ## Setup Instructions
 
-2. **Install Dependencies:**
+1. **Install Dependencies:**
    ```bash
    npm install
    ```
 
-3. **Install Playwright Browsers:**
+2. **Install Playwright Browsers:**
    Before attempting to conduct any tests, you must install the necessary browsers for Playwright:
    ```bash
    npx playwright install
