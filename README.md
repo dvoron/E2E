@@ -38,6 +38,11 @@ To execute the Playwright test suite, run:
 npx playwright test
 ```
 
+To run TypeScript type checking without emitting files, run:
+```bash
+npm run typecheck
+```
+
 ## Related Projects
 
 - **[Frontend Project](https://github.com/dvoron/frontend)** - The Vue.js user interface.
