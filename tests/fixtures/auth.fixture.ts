@@ -65,22 +65,8 @@ export const test = base.extend<{}, WorkerFixtures>({
         await page.locator('#register-password').fill(testUser.password);
         await page.getByRole('button', { name: 'Create Account' }).click();
 
-        // Check if user is logged in after registering; if not, head to login page via UI and log in
-        let isLoggedIn = false;
-        try {
-          await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
-          isLoggedIn = true;
-        } catch {
-          isLoggedIn = false;
-        }
-
-        if (!isLoggedIn) {
-          await page.getByRole('link', { name: 'Login', exact: true }).click();
-          await page.locator('#login-username').fill(testUser.email);
-          await page.locator('#login-password').fill(testUser.password);
-          await page.getByRole('button', { name: 'Sign In' }).click();
-          await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
-        }
+        // Verify user is logged in after registering
+        await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
 
         await context.storageState({ path: fileName });
         await browser.close();
