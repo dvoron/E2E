@@ -77,7 +77,7 @@ export const test = base.extend<{}, WorkerFixtures>({
             const stateStr = fs.readFileSync(fileName, 'utf-8');
             const stateObj = JSON.parse(stateStr);
             if (Array.isArray(stateObj.cookies)) {
-              stateObj.cookies.forEach((c: any) => {
+              stateObj.cookies.forEach((c: { secure: boolean }) => {
                 if (c.secure) c.secure = false;
               });
               fs.writeFileSync(fileName, JSON.stringify(stateObj, null, 2));
@@ -113,7 +113,7 @@ export const test = base.extend<{}, WorkerFixtures>({
         const stateStr = fs.readFileSync(workerStorageState, 'utf-8');
         const stateObj = JSON.parse(stateStr);
         if (Array.isArray(stateObj.cookies)) {
-          stateObj.cookies.forEach((c: any) => {
+          stateObj.cookies.forEach((c: { secure: boolean }) => {
             if (c.secure) c.secure = false;
           });
           fs.writeFileSync(workerStorageState, JSON.stringify(stateObj, null, 2));

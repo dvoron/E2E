@@ -4,7 +4,7 @@ import path from 'path';
 
 /**
  * Read environment variables from file.
- * Fallback to .env if ENV_NAME is not set (defaults to local environment).
+ * Load environment-specific .env first, then fallback to generic .env
  */
 const environment = process.env.ENV_NAME || 'local';
 dotenv.config({ path: path.resolve(__dirname, `.env.${environment}`) });
