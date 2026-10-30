@@ -62,11 +62,11 @@ test.describe('Profile & Account Deletion', () => {
     await page.getByRole('button', { name: 'Yes, Delete' }).click();
 
     // Verify user is logged out (Login/Register buttons visible)
-    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Register' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Login', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Register', exact: true })).toBeVisible();
 
     // Attempt to log back in (to verify account is indeed deleted)
-    await page.getByRole('link', { name: 'Login' }).click();
+    await page.getByRole('link', { name: 'Login', exact: true }).click();
     await page.locator('#login-username').fill(testUser.email);
     await page.locator('#login-password').fill(testUser.password);
     await page.getByRole('button', { name: 'Sign In' }).click();

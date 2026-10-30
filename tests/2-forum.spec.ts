@@ -2,7 +2,7 @@ import { test, expect } from './fixtures/auth.fixture';
 
 test.describe('Forum Functionality', () => {
   test('Create post, comment, and reply via UI navigation', async ({ page }) => {
-    // 2.1 User goes to the forum page using the UI (usage of goto is prohibited for that)
+    // 2.1 User goes to the forum page using the UI
     await page.goto('/');
     await page.getByRole('link', { name: 'Forum' }).click();
     await expect(page).toHaveURL(/\/forum$/);

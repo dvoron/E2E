@@ -24,8 +24,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
-
-  workers:1,
   
   /* Global Setup for things like auth state */
   // globalSetup: require.resolve('./tests/global.setup'),
@@ -33,9 +31,6 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Slow down execution speed for test actions */
-    launchOptions: {
-      slowMo: 2000
-    },
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL: process.env.BASE_URL || 'http://localhost:5173', // Default Vue dev server port
 
