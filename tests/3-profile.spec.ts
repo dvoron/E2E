@@ -12,53 +12,51 @@ test.describe('Profile & Account Deletion', () => {
 
     // Verify user can see posts/comments made by them
     const activitySection = page.locator('div').filter({ has: page.getByRole('heading', { name: 'My Activity' }) });
-    let postBadge = activitySection.getByText('Post', { exact: true }).first();
-    let commentBadge = activitySection.getByText('Comment', { exact: true }).first();
 
-    // If activity is not yet created (e.g. standalone test run), create post and comment via UI first
-    const hasActivity = (await postBadge.isVisible().catch(() => false)) || (await commentBadge.isVisible().catch(() => false));
-    if (!hasActivity) {
-      const postsResponsePromise = page.waitForResponse(response => 
-        response.url().includes('/api/forum/posts') && response.request().method() === 'GET'
-      );
-      await page.getByRole('link', { name: 'Forum' }).click();
-      await expect(page).toHaveURL(/\/forum$/);
-      await postsResponsePromise;
+    // Always create a post and comment via UI to ensure we assert on newly created unique activity
+    const postsResponsePromise = page.waitForResponse(response => 
+      response.url().includes('/api/forum/posts') && response.request().method() === 'GET'
+    );
+    await page.getByRole('link', { name: 'Forum' }).click();
+    await expect(page).toHaveURL(/\/forum$/);
+    await postsResponsePromise;
 
-      await page.getByRole('button', { name: 'Create Post' }).click();
-      const setupPostTitle = `Profile Test Post ${Date.now()}`;
-      await page.getByRole('textbox', { name: 'Post Title' }).fill(setupPostTitle);
-      await page.getByRole('textbox', { name: 'Post Content' }).fill('Profile test content');
-      
-      const createPostPromise = page.waitForResponse(response => 
-        response.url().includes('/api/forum/posts') && response.request().method() === 'POST'
-      );
-      await page.getByRole('button', { name: 'Post', exact: true }).click();
-      await createPostPromise;
+    await page.getByRole('button', { name: 'Create Post' }).click();
+    const setupPostTitle = `Profile Test Post ${Date.now()}`;
+    const setupCommentText = `Profile test comment ${Date.now()}`;
+    
+    await page.getByRole('textbox', { name: 'Post Title' }).fill(setupPostTitle);
+    await page.getByRole('textbox', { name: 'Post Content' }).fill('Profile test content');
+    
+    const createPostPromise = page.waitForResponse(response => 
+      response.url().includes('/api/forum/posts') && response.request().method() === 'POST'
+    );
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
+    await createPostPromise;
 
-      const postLocator = page.locator('.post').filter({ hasText: setupPostTitle }).first();
-      await expect(postLocator).toBeVisible();
+    const postLocator = page.locator('.post').filter({ hasText: setupPostTitle }).first();
+    await expect(postLocator).toBeVisible();
 
-      await postLocator.getByRole('button', { name: /Comments/ }).click();
-      await postLocator.getByRole('textbox', { name: 'Write a comment' }).fill('Profile test comment');
-      
-      const createCommentPromise = page.waitForResponse(response => 
-        response.url().includes('/api/forum/comments') && response.request().method() === 'POST'
-      );
-      await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
-      await createCommentPromise;
+    await postLocator.getByRole('button', { name: /Comments/ }).click();
+    await postLocator.getByRole('textbox', { name: 'Write a comment' }).fill(setupCommentText);
+    
+    const createCommentPromise = page.waitForResponse(response => 
+      response.url().includes('/api/forum/comments') && response.request().method() === 'POST'
+    );
+    await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
+    await createCommentPromise;
 
-      // Wait for comment to be created and visible before navigating away
-      const commentLocator = postLocator.locator('.comment').filter({ hasText: 'Profile test comment' }).first();
-      await expect(commentLocator).toBeVisible();
+    // Wait for comment to be created and visible before navigating away
+    const commentLocator = postLocator.locator('.comment').filter({ hasText: setupCommentText }).first();
+    await expect(commentLocator).toBeVisible();
 
-      // Navigate back to profile via UI
-      await page.getByRole('link', { name: 'Profile' }).click();
-      await expect(page).toHaveURL(/\/profile$/);
-    }
+    // Navigate back to profile via UI
+    await page.getByRole('link', { name: 'Profile' }).click();
+    await expect(page).toHaveURL(/\/profile$/);
 
-    // Verify posts/comments are visible in user activity
-    await expect(activitySection.getByText('Post', { exact: true }).first()).toBeVisible();
+    // Verify the specific, uniquely created post and comment are visible in user activity
+    await expect(activitySection.getByText(setupPostTitle).first()).toBeVisible();
+    await expect(activitySection.getByText(setupCommentText).first()).toBeVisible();
 
     // 3.2 Check profile editing functionality
     await page.getByRole('button', { name: 'Edit Profile' }).click();

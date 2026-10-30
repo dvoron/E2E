@@ -27,6 +27,9 @@ export const test = base.extend<{}, WorkerFixtures>({
       const fileName = path.resolve(__dirname, `../../playwright/.auth/user-worker-${id}.json`);
       const authDir = path.dirname(fileName);
 
+      let createdUserId: number | null = null;
+      let createdUserToken: string | null = null;
+
       if (!fs.existsSync(authDir)) {
         fs.mkdirSync(authDir, { recursive: true });
       }
@@ -63,7 +66,21 @@ export const test = base.extend<{}, WorkerFixtures>({
         await page.locator('#register-username').fill(testUser.username);
         await page.locator('#register-email').fill(testUser.email);
         await page.locator('#register-password').fill(testUser.password);
+        
+        const registerResponsePromise = page.waitForResponse(r => r.url().includes('/api/auth/register') && r.status() === 201);
         await page.getByRole('button', { name: 'Create Account' }).click();
+        const registerResponse = await registerResponsePromise;
+        const authData = await registerResponse.json();
+        
+        if (authData && authData.accessToken) {
+          createdUserToken = authData.accessToken;
+          try {
+            const payload = JSON.parse(Buffer.from(createdUserToken!.split('.')[1], 'base64').toString());
+            createdUserId = payload.sub ? Number(payload.sub) : null;
+          } catch (e) {
+            // ignore
+          }
+        }
 
         // Verify user is logged in after registering
         await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible({ timeout: 10000 });
@@ -89,6 +106,19 @@ export const test = base.extend<{}, WorkerFixtures>({
       }
 
       await use(fileName);
+
+      if (createdUserId && createdUserToken) {
+        try {
+          const apiContext = await playwright.request.newContext();
+          const response = await apiContext.delete(`${process.env.BASE_URL || 'http://localhost:5173'}/api/users/${createdUserId}`, {
+            headers: { Authorization: `Bearer ${createdUserToken}` },
+            data: { password: testUser.password }
+          });
+          await apiContext.dispose();
+        } catch (e) {
+          // ignore cleanup errors
+        }
+      }
 
       if (fs.existsSync(fileName)) {
         try {
