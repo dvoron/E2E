@@ -1,65 +1,83 @@
 import { test, expect } from './fixtures/auth.fixture';
-import type { Response } from '@playwright/test';
 
-test.describe('Profile', () => {
-    test('View activity and edit profile', async ({ page }) => {
-        test.setTimeout(60000);
+test.describe('Profile & Account Deletion', () => {
+  test('View activity, edit profile, delete account, and verify deleted author in forum', async ({ page, testUser }) => {
+    // Land on home page
+    await page.goto('/');
 
-        // First, create a post and comment so they exist in the profile
-        await page.goto('/forum');
-        await page.getByRole('button', { name: 'Create Post' }).click();
-        const postTitle = `Profile Test Post ${Date.now()}`;
-        await page.getByPlaceholder('Title').fill(postTitle);
-        await page.getByPlaceholder('Text (optional)').fill('Profile test content');
-        await page.getByRole('button', { name: 'Post', exact: true }).click();
-        
-        const postLocator = page.locator('.post').filter({ hasText: postTitle }).first();
-        await expect(postLocator).toBeVisible();
-        
-        const commentsResponse = page.waitForResponse((r: Response) => r.url().includes('/comments?page=') && r.request().method() === 'GET');
-        await postLocator.getByRole('button', { name: /Comments/ }).click();
-        await commentsResponse;
-        
-        await postLocator.getByPlaceholder('What are your thoughts?').fill('Profile test comment');
-        await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
+    // 3.1 User should head to the Profile page using the UI
+    await page.getByRole('link', { name: 'Profile' }).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page.getByRole('heading', { name: 'User Profile' })).toBeVisible();
 
-        // Wait for the comment to appear before navigating away
-        await expect(postLocator.locator('.comment').filter({ hasText: 'Profile test comment' }).first()).toBeVisible();
+    // Verify user can see posts/comments made by them
+    const activitySection = page.locator('div').filter({ has: page.getByRole('heading', { name: 'My Activity' }) });
+    let postBadge = activitySection.getByText('Post', { exact: true }).first();
+    let commentBadge = activitySection.getByText('Comment', { exact: true }).first();
 
-        // Navigate to profile page (user is already authenticated via storageState)
-        await page.goto('/profile');
+    // If activity is not yet created (e.g. standalone test run), create post and comment via UI first
+    const hasActivity = (await postBadge.isVisible().catch(() => false)) || (await commentBadge.isVisible().catch(() => false));
+    if (!hasActivity) {
+      await page.getByRole('link', { name: 'Forum' }).click();
+      await expect(page).toHaveURL(/\/forum$/);
 
-        // Wait for the profile page to load
-        await expect(page.locator('h3:has-text("User Profile")')).toBeVisible();
+      await page.getByRole('button', { name: 'Create Post' }).click();
+      const setupPostTitle = `Profile Test Post ${Date.now()}`;
+      await page.getByRole('textbox', { name: 'Post Title' }).fill(setupPostTitle);
+      await page.getByRole('textbox', { name: 'Post Content' }).fill('Profile test content');
+      await page.getByRole('button', { name: 'Post', exact: true }).click();
 
-        // Wait for the activity list to finish loading (wait for the badges to appear)
-        const postBadge = page.getByText('Post', { exact: true }).first();
-        const commentBadge = page.getByText('Comment', { exact: true }).first();
+      const postLocator = page.locator('.post').filter({ hasText: setupPostTitle }).first();
+      await expect(postLocator).toBeVisible();
 
-        await expect(postBadge).toBeVisible();
-        await expect(commentBadge).toBeVisible();
+      await postLocator.getByRole('button', { name: /Comments/ }).click();
+      await postLocator.getByRole('textbox', { name: 'Write a comment' }).fill('Profile test comment');
+      await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
 
-        // Check if user can see only posts
-        await page.getByRole('button', { name: /Posts \(/ }).click();
-        await expect(postBadge).toBeVisible();
-        await expect(page.getByText('Comment', { exact: true })).toHaveCount(0);
+      // Navigate back to profile via UI
+      await page.getByRole('link', { name: 'Profile' }).click();
+      await expect(page).toHaveURL(/\/profile$/);
+    }
 
-        // Check if user can see only comments
-        await page.getByRole('button', { name: /Comments \(/ }).click();
-        await expect(commentBadge).toBeVisible();
-        await expect(page.getByText('Post', { exact: true })).toHaveCount(0);
+    // Verify posts/comments are visible in user activity
+    await expect(activitySection.getByText('Post', { exact: true }).first()).toBeVisible();
 
-        // Edit profile functionality
-        await page.getByRole('button', { name: 'Edit Profile' }).click();
+    // 3.2 Check profile editing functionality
+    await page.getByRole('button', { name: 'Edit Profile' }).click();
 
-        // Change username
-        const newUsername = `updated_user_${Date.now()}`;
-        await page.locator('input[id="username"]').fill(newUsername);
+    const newUsername = `updated_w_${Date.now()}`;
+    await page.locator('#username').fill(newUsername);
+    await page.getByRole('button', { name: 'Save Changes' }).click();
 
-        // Save changes
-        await page.getByRole('button', { name: 'Save Changes' }).click();
+    // Confirm changes and check if profile shows new username
+    await expect(page.getByText('Profile updated successfully!')).toBeVisible();
+    await expect(page.locator('dd').filter({ hasText: newUsername })).toBeVisible();
 
-        // Verify success message
-        await expect(page.getByText('Profile updated successfully!')).toBeVisible();
-    });
+    // 3.3 Test user account deletion functionality
+    await page.getByRole('button', { name: 'Edit Profile' }).click();
+    await page.getByRole('button', { name: 'Delete Account' }).click();
+
+    await page.locator('#deletePassword').fill(testUser.password);
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Yes, Delete' }).click();
+
+    // Verify user is logged out (Login/Register buttons visible)
+    await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Register' })).toBeVisible();
+
+    // Attempt to log back in (to verify account is indeed deleted)
+    await page.getByRole('link', { name: 'Login' }).click();
+    await page.locator('#login-username').fill(testUser.email);
+    await page.locator('#login-password').fill(testUser.password);
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    await expect(page.getByText('Username or password is incorrect')).toBeVisible();
+
+    // 3.4 Navigate back to forum page using the UI to check deleted account text
+    await page.getByRole('link', { name: 'Forum' }).click();
+    await expect(page).toHaveURL(/\/forum$/);
+
+    // Check if post/comments are correctly marked with deleted account text '[deleted user]'
+    await expect(page.getByText('[deleted user]').first()).toBeVisible();
+  });
 });

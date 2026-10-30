@@ -1,44 +1,46 @@
 import { test, expect } from './fixtures/auth.fixture';
-import type { Response } from '@playwright/test';
 
-test.describe('Forum', () => {
-    test('Create post, comment, and reply', async ({ page }) => {
-        // Navigate to forums page (user is already authenticated via storageState)
-        await page.goto('/forum');
+test.describe('Forum Functionality', () => {
+  test('Create post, comment, and reply via UI navigation', async ({ page }) => {
+    // 2.1 User goes to the forum page using the UI (usage of goto is prohibited for that)
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Forum' }).click();
+    await expect(page).toHaveURL(/\/forum$/);
 
-        // Create a post
-        await page.getByRole('button', { name: 'Create Post' }).click();
-        const postTitle = `E2E Test Post ${Date.now()}`;
-        const postContent = `This is the body text for the E2E test post.`;
-        await page.getByPlaceholder('Title').fill(postTitle);
-        await page.getByPlaceholder('Text (optional)').fill(postContent);
-        await page.getByRole('button', { name: 'Post', exact: true }).click();
+    // User makes a post
+    await page.getByRole('button', { name: 'Create Post' }).click();
 
-        // Verify post is created
-        const postLocator = page.locator('.post').filter({ hasText: postTitle }).first();
-        await expect(postLocator).toBeVisible();
+    const postTitle = `E2E Forum Post ${Date.now()}`;
+    const postContent = `E2E Forum post body content ${Date.now()}`;
 
-        // Write a comment in the same post
-        const commentsResponse = page.waitForResponse((r: Response) => r.url().includes('/comments?page=') && r.request().method() === 'GET');
-        await postLocator.getByRole('button', { name: /Comments/ }).click();
-        await commentsResponse;
-        
-        const commentContent = `This is an E2E test comment.`;
-        await postLocator.getByPlaceholder('What are your thoughts?').fill(commentContent);
-        await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Post Title' }).fill(postTitle);
+    await page.getByRole('textbox', { name: 'Post Content' }).fill(postContent);
+    await page.getByRole('button', { name: 'Post', exact: true }).click();
 
-        // Verify comment is created
-        const commentLocator = postLocator.locator('.comment').filter({ hasText: commentContent }).first();
-        await expect(commentLocator).toBeVisible();
+    // Verify post is created and visible
+    const postLocator = page.locator('.post').filter({ hasText: postTitle }).first();
+    await expect(postLocator).toBeVisible();
 
-        // Reply to the comment
-        await commentLocator.getByRole('button', { name: 'Reply', exact: true }).click();
-        const replyContent = `This is an E2E test reply.`;
-        await commentLocator.getByPlaceholder('Write a reply...').fill(replyContent);
-        await commentLocator.getByRole('button', { name: 'Submit', exact: true }).click();
+    // User writes a comment after successfully making a post
+    await postLocator.getByRole('button', { name: /Comments/ }).click();
 
-        // Verify reply is created
-        const replyLocator = commentLocator.locator('.replies .comment').filter({ hasText: replyContent }).first();
-        await expect(replyLocator).toBeVisible();
-    });
+    const commentContent = `E2E Forum comment content ${Date.now()}`;
+    await postLocator.getByRole('textbox', { name: 'Write a comment' }).fill(commentContent);
+    await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
+
+    // Verify comment is created and visible
+    const commentLocator = postLocator.locator('.comment').filter({ hasText: commentContent }).first();
+    await expect(commentLocator).toBeVisible();
+
+    // User writes a reply after successfully writing the comment
+    await commentLocator.getByRole('button', { name: 'Reply', exact: true }).click();
+
+    const replyContent = `E2E Forum reply content ${Date.now()}`;
+    await commentLocator.getByRole('textbox', { name: 'Write a reply' }).fill(replyContent);
+    await commentLocator.getByRole('button', { name: 'Submit', exact: true }).click();
+
+    // Verify reply is written (await for it to be visible)
+    const replyLocator = commentLocator.locator('.replies .comment').filter({ hasText: replyContent }).first();
+    await expect(replyLocator).toBeVisible();
+  });
 });
