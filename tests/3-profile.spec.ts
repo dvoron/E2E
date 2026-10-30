@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/auth.fixture';
+import type { Response } from '@playwright/test';
 
 test.describe('Profile', () => {
     test('View activity and edit profile', async ({ page }) => {
@@ -14,7 +15,11 @@ test.describe('Profile', () => {
         
         const postLocator = page.locator('.post').filter({ hasText: postTitle }).first();
         await expect(postLocator).toBeVisible();
+        
+        const commentsResponse = page.waitForResponse((r: Response) => r.url().includes('/comments?page=') && r.request().method() === 'GET');
         await postLocator.getByRole('button', { name: /Comments/ }).click();
+        await commentsResponse;
+        
         await postLocator.getByPlaceholder('What are your thoughts?').fill('Profile test comment');
         await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
 

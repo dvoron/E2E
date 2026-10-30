@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/auth.fixture';
+import type { Response } from '@playwright/test';
 
 test.describe('Forum', () => {
     test('Create post, comment, and reply', async ({ page }) => {
@@ -18,7 +19,10 @@ test.describe('Forum', () => {
         await expect(postLocator).toBeVisible();
 
         // Write a comment in the same post
+        const commentsResponse = page.waitForResponse((r: Response) => r.url().includes('/comments?page=') && r.request().method() === 'GET');
         await postLocator.getByRole('button', { name: /Comments/ }).click();
+        await commentsResponse;
+        
         const commentContent = `This is an E2E test comment.`;
         await postLocator.getByPlaceholder('What are your thoughts?').fill(commentContent);
         await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();

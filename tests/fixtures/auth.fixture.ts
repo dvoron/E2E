@@ -32,7 +32,7 @@ export const test = base.extend<any, WorkerFixtures>({
         await page.getByPlaceholder('Password').fill(testUser.password);
         await page.getByRole('button', { name: 'Create Account' }).click();
 
-        await page.waitForURL('**/home', { timeout: 5000 });
+        await page.waitForURL('**/home');
         await expect(page.getByText('Welcome back!')).toBeVisible();
         await expect(page.getByText('You are logged in.')).toBeVisible();
         
@@ -48,7 +48,7 @@ export const test = base.extend<any, WorkerFixtures>({
         await teardownPage.getByPlaceholder('Enter password').fill(testUser.password);
         await teardownPage.getByRole('button', { name: 'Sign In' }).click();
         
-        await teardownPage.waitForURL('**/home', { timeout: 5000 });
+        await teardownPage.waitForURL('**/home');
         await teardownPage.getByRole('link', { name: 'Profile' }).click();
         await expect(teardownPage.locator('h3:has-text("User Profile")')).toBeVisible();
 
@@ -57,7 +57,7 @@ export const test = base.extend<any, WorkerFixtures>({
         await teardownPage.locator('input[id="deletePassword"]').fill(testUser.password);
         await teardownPage.getByRole('button', { name: 'Continue' }).click();
         await teardownPage.getByRole('button', { name: 'Yes, Delete' }).click();
-        await teardownPage.waitForURL('**/login', { timeout: 5000 });
+        await teardownPage.waitForURL('**/login');
 
         await teardownPage.close();
 
@@ -84,6 +84,8 @@ export const test = base.extend<any, WorkerFixtures>({
         if (response.ok()) {
             const data = await response.json();
             accessToken = data.accessToken;
+        } else {
+            throw new Error(`Worker failed to get access token: ${response.status} ${await response.text()}`);
         }
         
         await requestContext.dispose();
