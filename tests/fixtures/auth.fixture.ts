@@ -1,68 +1,107 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect, type Route } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export const test = base.extend({
-    // Override page fixture to automatically inject the refresh token handling
-    page: async ({ page, request }, use) => {
-        const authFile = path.resolve(__dirname, '../../playwright/.auth/user.json');
+type WorkerFixtures = {
+    workerStorageState: string;
+    workerAccessToken: string;
+};
+
+export const test = base.extend<any, WorkerFixtures>({
+    workerStorageState: [async ({ browser }, use, workerInfo) => {
+        const id = workerInfo.workerIndex;
+        const fileName = path.resolve(__dirname, `../../playwright/.auth/user-${id}.json`);
+        const authDir = path.dirname(fileName);
+
+        if (!fs.existsSync(authDir)) {
+            fs.mkdirSync(authDir, { recursive: true });
+        }
+
+        const baseURL = workerInfo.project.use.baseURL || process.env.BASE_URL || 'http://localhost:5173';
+        const page = await browser.newPage({ baseURL });
+        
+        const testUser = {
+            username: `testuser_${Date.now()}_${id}`,
+            email: `testuser_${Date.now()}_${id}@example.com`,
+            password: 'Password123!'
+        };
+
+        await page.goto('/home/register');
+        await page.getByPlaceholder('Username').fill(testUser.username);
+        await page.getByPlaceholder('Email').fill(testUser.email);
+        await page.getByPlaceholder('Password').fill(testUser.password);
+        await page.getByRole('button', { name: 'Create Account' }).click();
+
+        await page.waitForURL('**/home', { timeout: 5000 });
+        await expect(page.getByText('Welcome back!')).toBeVisible();
+        await expect(page.getByText('You are logged in.')).toBeVisible();
+        
+        await page.context().storageState({ path: fileName });
+        await page.close();
+        
+        await use(fileName);
+
+        // Teardown
+        const teardownPage = await browser.newPage({ baseURL });
+        await teardownPage.goto('/home/login');
+        await teardownPage.getByPlaceholder('Enter username or email').fill(testUser.email);
+        await teardownPage.getByPlaceholder('Enter password').fill(testUser.password);
+        await teardownPage.getByRole('button', { name: 'Sign In' }).click();
+        
+        await teardownPage.waitForURL('**/home', { timeout: 5000 });
+        await teardownPage.getByRole('link', { name: 'Profile' }).click();
+        await expect(teardownPage.locator('h3:has-text("User Profile")')).toBeVisible();
+
+        await teardownPage.getByRole('button', { name: 'Edit Profile' }).click();
+        await teardownPage.getByRole('button', { name: 'Delete Account' }).click();
+        await teardownPage.locator('input[id="deletePassword"]').fill(testUser.password);
+        await teardownPage.getByRole('button', { name: 'Continue' }).click();
+        await teardownPage.getByRole('button', { name: 'Yes, Delete' }).click();
+        await teardownPage.waitForURL('**/login', { timeout: 5000 });
+
+        await teardownPage.close();
+
+        if (fs.existsSync(fileName)) {
+            fs.unlinkSync(fileName);
+        }
+    }, { scope: 'worker' }],
+
+    workerAccessToken: [async ({ workerStorageState, playwright }, use) => {
+        const authData = JSON.parse(fs.readFileSync(workerStorageState, 'utf-8'));
+        const refreshTokenCookie = authData.cookies.find((c: any) => c.name === 'refreshToken');
         let cookieStr = '';
-
-        if (fs.existsSync(authFile)) {
-            const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-            const refreshTokenCookie = authData.cookies.find((c: any) => c.name === 'refreshToken');
-            if (refreshTokenCookie) {
-                cookieStr = `${refreshTokenCookie.name}=${refreshTokenCookie.value}`;
-            }
+        if (refreshTokenCookie) {
+            cookieStr = `${refreshTokenCookie.name}=${refreshTokenCookie.value}`;
         }
-
+        
         const apiUrl = process.env.API_URL || 'http://localhost:8080';
-        const response = await request.post(`${apiUrl}/api/auth/refresh`, {
-            headers: {
-                'Cookie': cookieStr
-            }
+        const requestContext = await playwright.request.newContext();
+        const response = await requestContext.post(`${apiUrl}/api/auth/refresh`, {
+            headers: { 'Cookie': cookieStr }
         });
-
-        let data: any = {};
+        
+        let accessToken = '';
         if (response.ok()) {
-            data = await response.json();
-
-            let newRefreshToken = data.refreshToken;
-            const setCookieHeaders = response.headersArray().filter(h => h.name.toLowerCase() === 'set-cookie');
-            for (const header of setCookieHeaders) {
-                const match = header.value.match(/refreshToken=([^;]+)/);
-                if (match) {
-                    newRefreshToken = match[1];
-                }
-            }
-
-            if (newRefreshToken && fs.existsSync(authFile)) {
-                const authData = JSON.parse(fs.readFileSync(authFile, 'utf-8'));
-                const cookieIndex = authData.cookies.findIndex((c: any) => c.name === 'refreshToken');
-                if (cookieIndex !== -1) {
-                    authData.cookies[cookieIndex].value = newRefreshToken;
-                    fs.writeFileSync(authFile, JSON.stringify(authData, null, 2));
-                }
-            }
-        } else {
-            const errorText = await response.text();
-            console.log('Failed to refresh token:', errorText);
-            // Fail straight away if the token refresh fails
-            throw new Error(`Token refresh failed: ${errorText}`);
+            const data = await response.json();
+            accessToken = data.accessToken;
         }
+        
+        await requestContext.dispose();
+        await use(accessToken);
+    }, { scope: 'worker' }],
 
-        // Intercept the frontend's refresh request to provide the obtained token
-        // Note: Mocking /api/auth/refresh bypasses the app's real refresh flow.
-        // Every later refresh returns this same cached token, so a long test could 
-        // theoretically run past the access token's expiry.
-        await page.route('**/api/auth/refresh', async route => {
+    storageState: async ({ workerStorageState }, use) => {
+        await use(workerStorageState);
+    },
+    
+    page: async ({ page, workerAccessToken }, use) => {
+        await page.route('**/api/auth/refresh', async (route: Route) => {
             await route.fulfill({
-                status: response.ok() ? 200 : 401,
+                status: 200,
                 contentType: 'application/json',
-                body: JSON.stringify(data)
+                body: JSON.stringify({ accessToken: workerAccessToken })
             });
         });
-
         await use(page);
     }
 });

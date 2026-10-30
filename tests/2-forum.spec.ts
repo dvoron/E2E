@@ -1,10 +1,4 @@
 import { test, expect } from './fixtures/auth.fixture';
-import * as path from 'path';
-
-const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
-
-// Use the storage state saved by the authentication test (which contains localStorage and cookies)
-test.use({ storageState: authFile });
 
 test.describe('Forum', () => {
     test('Create post, comment, and reply', async ({ page }) => {

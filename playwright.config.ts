@@ -22,8 +22,6 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   
@@ -48,20 +46,10 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-      teardown: 'teardown',
-    },
-    {
-      name: 'teardown',
-      testMatch: /auth\.teardown\.ts/,
-    },
-    {
       name: 'chromium',
       use: { 
         ...devices['Desktop Chrome'],
       },
-      dependencies: ['setup'],
     },
 
     {
@@ -69,7 +57,6 @@ export default defineConfig({
       use: {
         ...devices['Desktop Firefox'],
       },
-      dependencies: ['setup'],
     },
 
     {
@@ -77,7 +64,6 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Safari'],
       },
-      dependencies: ['setup'],
     },
   ],
 });

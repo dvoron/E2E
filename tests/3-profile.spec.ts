@@ -1,10 +1,4 @@
 import { test, expect } from './fixtures/auth.fixture';
-import * as path from 'path';
-
-const authFile = path.resolve(__dirname, '../playwright/.auth/user.json');
-
-// Use the storage state saved by the authentication test (which contains localStorage and cookies)
-test.use({ storageState: authFile });
 
 test.describe('Profile', () => {
     test('View activity and edit profile', async ({ page }) => {
@@ -23,6 +17,9 @@ test.describe('Profile', () => {
         await postLocator.getByRole('button', { name: /Comments/ }).click();
         await postLocator.getByPlaceholder('What are your thoughts?').fill('Profile test comment');
         await postLocator.getByRole('button', { name: 'Comment', exact: true }).click();
+
+        // Wait for the comment to appear before navigating away
+        await expect(postLocator.locator('.comment').filter({ hasText: 'Profile test comment' }).first()).toBeVisible();
 
         // Navigate to profile page (user is already authenticated via storageState)
         await page.goto('/profile');
